@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>ai-channels Office</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --border:#30363d; --fg:#e6edf3; --muted:#8b949e;
+          --gold:#f0b429; --green:#3fb950; --amber:#d29922; --cyan:#39c5cf; --red:#f85149; --navy:#14172b; --line:#2b3160; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  .px { font-family:'Press Start 2P', ui-monospace, Consolas, monospace; }
+  header { display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:12px 16px; background:var(--panel);
+           border-bottom:1px solid var(--border); position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:16px; font-weight:600; }
+  .meta { color:var(--muted); font-size:12px; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--muted); margin-right:6px; vertical-align:middle; }
+  .dot.ok { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .dot.bad { background:var(--red); }
+  .wait { margin-left:auto; }
+  .badge-wait { display:inline-block; min-width:20px; padding:0 7px; border-radius:10px; background:var(--amber); color:#0d1117;
+                font-weight:700; text-align:center; }
+  button.link { background:none; border:1px solid var(--border); color:var(--muted); border-radius:6px; padding:3px 9px; cursor:pointer; font:inherit; font-size:12px; }
+  .wrap { max-width:1500px; margin:0 auto; padding:16px; }
+  .box { background:var(--navy); border:2px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:16px; position:relative; }
+  .box > h2 { font-size:12px; color:var(--gold); text-transform:uppercase; margin:0 0 12px; text-shadow:2px 2px 0 #0a0c1a; }
+  .err { color:var(--red); margin-bottom:10px; }
+  .dim { color:var(--muted); }
+
+  .team { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(320px,1fr); gap:18px; align-items:stretch; }
+  @media (max-width:980px) { .team { grid-template-columns:1fr; } }
+  .groups { display:flex; flex-wrap:wrap; gap:4px 24px; align-content:flex-start; }
+  .grp h4, .feed-h { font-size:9px; color:#8e9ad6; text-transform:uppercase; margin:6px 0 8px; }
+  .tiles { display:flex; flex-wrap:wrap; gap:4px; }
+  .tile { width:112px; padding:8px 4px 6px; text-align:center; border:2px solid transparent; border-radius:8px;
+          display:flex; flex-direction:column; align-items:center; gap:4px; outline:none; cursor:default; }
+  .tile:hover, .tile:focus-visible { background:#1b2040; border-color:#3b4488; }
+  .pf { display:block; width:56px; height:56px; border-radius:50%; background:#1d2340; border:3px solid #4a5590; overflow:hidden; flex:0 0 auto; }
+  .pf svg { display:block; width:100%; height:100%; image-rendering:pixelated; }
+  .pf.xs { width:26px; height:26px; border-width:2px; }
+  .pf.sm { width:44px; height:44px; }
+  .tile.busy .pf { border-color:var(--gold); box-shadow:0 0 0 2px #f0b42944, 0 0 14px #f0b42988; animation:bob .9s steps(2) infinite; }
+  @keyframes bob { 0% { transform:translateY(0); } 100% { transform:translateY(-2px); } }
+  @media (prefers-reduced-motion: reduce) { .tile.busy .pf { animation:none; } }
+  .tn { font-size:9px; } .tr { font-size:7px; color:#8e9ad6; line-height:1.5; min-height:21px; }
+  .ta { font-size:11px; color:#cfd4f5; line-height:1.3; max-width:104px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }
+  .bdg { display:inline-block; font-size:7px; line-height:1; padding:3px 5px; border-radius:6px; text-transform:uppercase; color:#10131f; background:#5a6699; }
+  .bdg-idle { background:#5a6699; color:#e6e9ff; } .bdg-working { background:var(--gold); } .bdg-waiting { background:#36c5d6; }
+  .bdg-blocked { background:#ff5c5c; color:#fff; } .bdg-offline { background:#3a4054; color:#c8cde0; }
+
+  .panel { position:relative; min-height:320px; background:#10142a; border:2px solid var(--line); border-radius:8px; padding:10px 12px; }
+  .feed { position:absolute; top:40px; left:12px; right:12px; bottom:10px; overflow-y:auto; scrollbar-width:thin; }
+  @media (max-width:980px) { .feed { position:static; max-height:360px; } }
+  .fr { display:flex; gap:8px; align-items:flex-start; padding:6px 0; border-bottom:1px solid #1f2547; font-size:13px; }
+  .fr .ft { flex:0 0 104px; font-size:11px; color:#8e9ad6; padding-top:3px; font-variant-numeric:tabular-nums; }
+  .fr .fx { flex:1 1 auto; min-width:0; overflow-wrap:anywhere; }
+  .who { color:#ffd166; font-weight:600; }
+  .tid { color:#8e9ad6; font-weight:600; }
+
+  .pop { position:absolute; z-index:20; width:290px; background:#1a1f3a; border:2px solid #5865b7; border-radius:8px; padding:10px 12px;
+         box-shadow:0 8px 24px rgba(0,0,0,.55); pointer-events:none; display:none; }
+  .pop.show { display:block; }
+  .pop-h { display:flex; gap:10px; align-items:center; margin-bottom:8px; }
+  .ev { font-size:12px; padding:4px 0; border-top:1px dashed var(--line); color:#cfd4f5; }
+
+  .board { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; align-items:start; }
+  @media (max-width:1100px) { .board { grid-template-columns:1fr 1fr; } }
+  @media (max-width:640px) { .board { grid-template-columns:1fr; } }
+  .col { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:10px; min-width:0; }
+  .col h3 { margin:0 0 10px; font-size:12px; text-transform:uppercase; color:var(--muted); display:flex; justify-content:space-between; }
+  .cnt { background:var(--panel2); border-radius:10px; padding:0 8px; color:var(--fg); }
+  .card { background:var(--panel2); border:1px solid var(--border); border-left:3px solid var(--cyan); border-radius:7px; padding:8px 10px; margin-bottom:8px; }
+  .col[data-k=in_progress] .card { border-left-color:var(--gold); }
+  .col[data-k=waiting_human] .card { border-left-color:var(--amber); }
+  .col[data-k=done] .card { border-left-color:var(--green); }
+  .card .t { font-weight:600; font-size:13px; overflow-wrap:anywhere; }
+  .card .n { color:var(--muted); font-size:12px; margin-top:3px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+  .pill { display:inline-block; margin-top:5px; font-size:11px; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:0 8px; }
+  .kind { font-size:10px; padding:0 6px; border-radius:4px; border:1px solid var(--border); color:var(--muted); margin-left:4px; }
+  .todo { margin:8px 0 0; padding:7px 9px; background:#11161f; border-left:3px solid var(--gold); border-radius:4px; font:12px/1.5 ui-monospace,Consolas,monospace; overflow-wrap:anywhere; }
+
+  #signin { max-width:420px; margin:12vh auto; text-align:center; }
+  #signin input { width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:var(--panel2); color:var(--fg); font:inherit; margin:10px 0; }
+  #signin button { width:100%; padding:10px; border-radius:8px; border:0; background:var(--gold); color:#10131f; font-weight:700; cursor:pointer; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<div id="signin" class="box" hidden>
+  <h2 class="px">ai-channels Office</h2>
+  <p class="dim">Private dashboard. The sign-in link goes only to the owner's inbox.</p>
+  <button id="login" type="button">Email the owner a sign-in link</button>
+  <p id="loginmsg" class="dim"></p>
+</div>
+
+<div id="app" hidden>
+<header>
+  <h1>ai-channels · Team Office</h1>
+  <span class="meta"><span class="dot" id="live"></span><span id="clock">-</span></span>
+  <span class="meta" id="pc"></span>
+  <span class="meta wait">Waiting on you <span class="badge-wait" id="waitBadge">0</span></span>
+  <button class="link" id="signout" type="button">Sign out</button>
+</header>
+<div class="wrap">
+  <div id="status"></div>
+  <div class="box"><h2 class="px">Who's doing what</h2><div id="team"></div><div id="pop" class="pop" role="tooltip"></div></div>
+  <div class="box"><h2 class="px">Task board</h2>
+    <div class="dim" style="margin-bottom:8px">Videos, /feature and /bug tickets, and anything waiting on you. Refreshes every 15 s.</div>
+    <div class="board" id="board"></div>
+  </div>
+</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
+        integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug" crossorigin="anonymous"></script>
+<script src="config.js?v=4"></script>  <!-- bump ?v= when these change so browsers don't use an old copy -->
+<script src="sprites.js?v=4"></script>
+<script>
+const ROSTER = [
+  { agent:'theo', name:'Theo', role:'Planner', group:"Writers' room" },
+  { agent:'ivy', name:'Ivy', role:'Writer', group:"Writers' room" },
+  { agent:'vera', name:'Vera', role:'Fact checker', group:"Writers' room" },
+  { agent:'marcus', name:'Marcus', role:'Editor', group:"Writers' room" },
+  { agent:'nina', name:'Nina', role:'Producer', group:'Production' },
+  { agent:'pia', name:'Pia', role:'Presenter (voice, lip-sync)', group:'Production' },
+  { agent:'kai', name:'Kai', role:'Renderer', group:'Production' },
+  { agent:'otto', name:'Otto', role:'Approvals', group:'Production' },
+  { agent:'lena', name:'Lena', role:'Social (Phase 3)', group:'Growth & ops' },
+  { agent:'leo', name:'Leo', role:'Growth (Phase 5)', group:'Growth & ops' },
+  { agent:'hana', name:'Hana', role:'Ops, answers /ask', group:'Growth & ops' },
+  { agent:'marco', name:'Marco', role:'Software lead', group:'Software team' },
+  { agent:'ravi', name:'Ravi', role:'Developer', group:'Software team' },
+  { agent:'quinn', name:'Quinn', role:'Tester', group:'Software team' },
+  { agent:'sam', name:'Sam', role:'Deployer', group:'Software team' },
+];
+const GROUPS = ["Writers' room", 'Production', 'Growth & ops', 'Software team'];
+const COLS = [
+  { key:'in_progress', title:'In progress' }, { key:'queue', title:'On queue' },
+  { key:'waiting_human', title:'Waiting on you' }, { key:'done', title:'Done (latest 12)', limit:12 },
+];
+const STALE_MS = 3 * 3600 * 1000;   // "working" with no update for 3 h is shown idle (a crashed run)
+const esc = s => String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const when = ts => { const d = new Date(ts); return isNaN(d) ? '' : d.toLocaleString('en-US', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit' }); };
+const ago = ts => { const m = Math.floor((Date.now() - Date.parse(ts)) / 60000); return isNaN(m) ? 'never' : m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.floor(m / 60) + ' h ago' : Math.floor(m / 1440) + ' d ago'; };
+const nameOf = a => (ROSTER.find(r => r.agent === a) || { name: a }).name;
+
+let S = { agents: {}, events: [], tasks: [], heartbeat: {} }, hover = null;
+
+function statusOf(a) {
+  const row = S.agents[a.agent];
+  if (!row) return { state:'idle', activity:'' };
+  let state = row.status || 'idle';
+  if (state === 'working' && Date.now() - Date.parse(row.updated_at) > STALE_MS) state = 'idle';
+  return { state, activity: state === 'idle' ? '' : row.activity || '', ticket: row.ticket, at: row.updated_at };
+}
+function tile(a) {
+  const st = statusOf(a);
+  return '<div class="tile' + (st.state === 'working' ? ' busy' : '') + '" tabindex="0" data-agent="' + a.agent + '">'
+    + '<span class="pf">' + renderSprite(a.agent) + '</span><span class="tn px">' + esc(a.name) + '</span>'
+    + '<span class="bdg px bdg-' + st.state + '">' + st.state + '</span><span class="tr px">' + esc(a.role) + '</span>'
+    + '<span class="ta">' + esc(st.activity) + '</span></div>';
+}
+function feedRow(e) {
+  const known = ROSTER.some(r => r.agent === e.agent);
+  return '<div class="fr"><span class="ft">' + esc(when(e.at)) + '</span>'
+    + (known ? '<span class="pf xs">' + renderSprite(e.agent) + '</span>' : '<span class="pf xs"></span>')
+    + '<span class="fx"><b class="who">' + esc(nameOf(e.agent)) + ':</b> '
+    + (e.ticket ? '<span class="tid">' + esc(e.ticket) + '</span> ' : '') + esc(e.message) + '</span></div>';
+}
+function renderTeam() {
+  const groups = GROUPS.map(g => '<div class="grp"><h4 class="px">' + esc(g) + '</h4><div class="tiles">'
+    + ROSTER.filter(a => a.group === g).map(tile).join('') + '</div></div>').join('');
+  const feed = S.events.length ? S.events.map(feedRow).join('') : '<div class="dim">No activity yet.</div>';
+  document.getElementById('team').innerHTML = '<div class="team"><div class="groups">' + groups + '</div>'
+    + '<div class="panel"><div class="feed-h px">Activity</div><div class="feed">' + feed + '</div></div></div>';
+  if (hover) showPop(hover);
+}
+function card(t) {
+  const who = t.assignee ? '<div><span class="pill">' + (t.status === 'in_progress' ? '▶ ' : '') + esc(nameOf(t.assignee)) + '</span></div>' : '';
+  return '<div class="card"><div class="t">' + esc(t.title) + '<span class="kind">' + esc(t.kind) + '</span></div>'
+    + '<div class="dim" style="font-size:11px">' + esc(t.id) + ' · ' + esc(ago(t.updated_at)) + '</div>' + who
+    + (t.notes ? '<div class="n" title="' + esc(t.notes) + '">' + esc(t.notes) + '</div>' : '')
+    + (t.status === 'waiting_human' && t.action ? '<div class="todo">' + esc(t.action) + '</div>' : '') + '</div>';
+}
+function renderBoard() {
+  const by = (a, b) => Date.parse(b.updated_at) - Date.parse(a.updated_at);
+  document.getElementById('board').innerHTML = COLS.map(c => {
+    let rows = S.tasks.filter(t => t.status === c.key).sort(by);
+    const total = rows.length; if (c.limit) rows = rows.slice(0, c.limit);
+    return '<div class="col" data-k="' + c.key + '"><h3>' + esc(c.title) + '<span class="cnt">' + total + '</span></h3>'
+      + (rows.map(card).join('') || '<div class="dim">none</div>') + '</div>';
+  }).join('');
+  document.getElementById('waitBadge').textContent = S.tasks.filter(t => t.status === 'waiting_human').length;
+}
+function showPop(agent) {
+  const el = document.querySelector('#team [data-agent="' + agent + '"]'), a = ROSTER.find(r => r.agent === agent), pop = document.getElementById('pop');
+  if (!el || !a) { pop.classList.remove('show'); return; }
+  hover = agent;
+  const st = statusOf(a), recent = S.events.filter(e => e.agent === agent).slice(0, 4);
+  pop.innerHTML = '<div class="pop-h"><span class="pf sm">' + renderSprite(agent) + '</span><div><div class="px" style="font-size:10px">'
+    + esc(a.name) + ' <span class="bdg px bdg-' + st.state + '">' + st.state + '</span></div><div class="dim" style="font-size:12px">' + esc(a.role) + '</div></div></div>'
+    + '<div style="font-size:13px;margin-bottom:6px">' + (st.activity ? esc(st.activity) : '<span class="dim">Nothing right now</span>') + '</div>'
+    + (recent.length ? recent.map(e => '<div class="ev"><span class="dim">' + esc(when(e.at)) + '</span> ' + esc(e.message) + '</div>').join('') : '<div class="dim">nothing recent</div>');
+  const box = pop.parentElement.getBoundingClientRect(), r = el.getBoundingClientRect();
+  let left = r.right - box.left + 8; if (left + 300 > box.width) left = r.left - box.left - 298;
+  pop.style.left = Math.max(4, left) + 'px'; pop.style.top = Math.max(4, r.top - box.top - 6) + 'px'; pop.classList.add('show');
+}
+{ const t = document.getElementById('team');
+  t.addEventListener('mouseover', e => { const x = e.target.closest('[data-agent]'); if (x) showPop(x.dataset.agent); });
+  t.addEventListener('mouseout', e => { const x = e.target.closest('[data-agent]'); if (x && !x.contains(e.relatedTarget)) { hover = null; document.getElementById('pop').classList.remove('show'); } });
+  t.addEventListener('focusin', e => { const x = e.target.closest('[data-agent]'); if (x) showPop(x.dataset.agent); }); }
+
+function renderHeader() {
+  const hb = S.heartbeat.listener, fresh = hb && Date.now() - Date.parse(hb.at) < 5 * 60000;
+  document.getElementById('pc').innerHTML = '<span class="dot ' + (fresh ? 'ok' : 'bad') + '"></span>mini PC listener: '
+    + (hb ? (fresh ? 'online' : 'last seen ' + ago(hb.at)) : 'not seen yet');
+}
+function render() { renderHeader(); renderTeam(); renderBoard(); }
+
+let sb = null;
+async function load() {
+  const status = document.getElementById('status'), live = document.getElementById('live');
+  try {
+    const [ag, ev, tk, hb] = await Promise.all([
+      sb.from('agents').select('*'), sb.from('events').select('*').order('at', { ascending:false }).limit(80),
+      sb.from('tasks').select('*').neq('status', 'dropped'), sb.from('heartbeat').select('*'),
+    ]);
+    for (const r of [ag, ev, tk, hb]) if (r.error) throw new Error(r.error.message);
+    S = { agents: Object.fromEntries(ag.data.map(r => [r.agent, r])), events: ev.data, tasks: tk.data,
+          heartbeat: Object.fromEntries(hb.data.map(r => [r.source, r])) };
+    status.innerHTML = ''; live.className = 'dot ok';
+    document.getElementById('clock').textContent = 'updated ' + new Date().toLocaleTimeString();
+    render();
+  } catch (e) {
+    live.className = 'dot bad';
+    status.innerHTML = '<div class="err">Could not refresh: ' + esc(e.message) + ' (showing the last good data)</div>';
+  }
+}
+function demo() {   // ?demo previews the layout with made-up data, no sign-in and no real data
+  const now = Date.now(), t = m => new Date(now - m * 60000).toISOString();
+  S = { agents: { ivy:{ status:'working', activity:'writing draft 2', updated_at:t(1) }, marco:{ status:'working', activity:'planning T1', updated_at:t(3) }, otto:{ status:'waiting', activity:'card sent, waiting for you', updated_at:t(9) } },
+        events: [{ at:t(1), agent:'ivy', ticket:'trading-edu/2026-11-02-short', message:'writing draft 2' }, { at:t(3), agent:'marco', ticket:'T1', message:'planning T1' }, { at:t(9), agent:'otto', ticket:'trading-edu/2026-11-01-short', message:'sent you the approval card' }],
+        tasks: [{ id:'trading-edu/2026-11-02-short', title:'The Sceptical Trader · 2026-11-02-short', status:'in_progress', assignee:'ivy', kind:'video', notes:'being made', updated_at:t(1) },
+                { id:'T1', title:'Visual explainer videos', status:'waiting_human', assignee:'marco', kind:'feature', action:"Tap ✅ Build it or ❌ Drop on Marco's plan in Telegram", updated_at:t(3) },
+                { id:'T0', title:'UTF-8 logs', status:'done', assignee:'sam', kind:'bug', updated_at:t(60) }],
+        heartbeat: { listener: { at:t(1) } } };
+  document.getElementById('app').hidden = false; render();
+}
+
+async function start() {
+  if (new URLSearchParams(location.search).has('demo')) return demo();
+  sb = supabase.createClient(OFFICE.url, OFFICE.key);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { document.getElementById('signin').hidden = false; return; }
+  document.getElementById('app').hidden = false;
+  await load(); setInterval(load, 15000);
+}
+document.getElementById('login').onclick = async () => {
+  const msg = document.getElementById('loginmsg');
+  msg.textContent = 'Sending...';
+  // The office-signin function knows the owner's address; this page never does.
+  let ok = false;
+  try {
+    const r = await fetch(OFFICE.url + '/functions/v1/office-signin', {
+      method: 'POST', headers: { apikey: OFFICE.key, Authorization: 'Bearer ' + OFFICE.key, 'Content-Type': 'application/json' }, body: '{}',
+    });
+    ok = r.ok && (await r.json()).ok === true;
+  } catch (_) { ok = false; }
+  msg.textContent = ok ? 'Sent. Open the newest email from Supabase in your inbox and tap its link.'
+    : "Couldn't send right now (at most about 2 sign-in emails an hour). Try again later.";
+};
+document.getElementById('signout').onclick = async () => { if (sb) await sb.auth.signOut(); location.reload(); };
+start();
+</script>
+</body>
+</html>
